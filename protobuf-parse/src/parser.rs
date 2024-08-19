@@ -18,6 +18,7 @@ pub struct Parser {
     which_parser: WhichParser,
     pub(crate) includes: Vec<PathBuf>,
     pub(crate) inputs: Vec<PathBuf>,
+    pub(crate) input_dirs: Vec<PathBuf>,
     pub(crate) protoc: Option<PathBuf>,
     pub(crate) protoc_extra_args: Vec<OsString>,
     pub(crate) capture_stderr: bool,
@@ -58,6 +59,12 @@ impl Parser {
     /// Append a `.proto` file path to compile
     pub fn input(&mut self, input: impl AsRef<Path>) -> &mut Self {
         self.inputs.push(input.as_ref().to_owned());
+        self
+    }
+
+    /// Appends a directory to search for `.proto` files in
+    pub fn input_dir(&mut self, input: impl AsRef<Path>) -> &mut Self {
+        self.input_dirs.push(input.as_ref().to_owned());
         self
     }
 

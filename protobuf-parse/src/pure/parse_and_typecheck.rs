@@ -255,11 +255,27 @@ pub fn parse_and_typecheck(parser: &Parser) -> anyhow::Result<ParsedAndTypecheck
         resolver: fs_resolver(&parser.includes),
     };
 
-    let relative_paths = parser
+
+    let input_dir_rel_paths = parser.input_dirs
+        .iter()
+        .map(|path| std::fs::read_dir(path))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flat_map(|dir| dir.into_iter())
+        .map(|entry| {
+            let path = entry?.path();
+            Ok((path_to_proto_path(&path, &parser.includes)?, path))
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+
+    let mut relative_paths = parser
         .inputs
         .iter()
-        .map(|input| Ok((path_to_proto_path(input, &parser.includes)?, input)))
+        .map(|input| Ok((path_to_proto_path(input, &parser.includes)?, input.clone())))
         .collect::<anyhow::Result<Vec<_>>>()?;
+
+    relative_paths.extend(input_dir_rel_paths);
+
 
     for (proto_path, path) in &relative_paths {
         let content = fs::read_to_string(path)

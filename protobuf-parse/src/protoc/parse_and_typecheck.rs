@@ -16,11 +16,22 @@ pub(crate) fn parse_and_typecheck(parser: &Parser) -> anyhow::Result<ParsedAndTy
         .tempdir()?;
     let temp_file = temp_dir.path().join("descriptor.pbbin");
 
-    let relative_paths: Vec<ProtoPathBuf> = parser
+    let input_dir_rel_paths = parser.input_dirs
+        .iter()
+        .map(|path| std::fs::read_dir(path))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flat_map(|dir| dir.into_iter())
+        .map(|entry| Ok(path_to_proto_path(&entry?.path(), &parser.includes)?))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+
+    let mut relative_paths: Vec<ProtoPathBuf> = parser
         .inputs
         .iter()
         .map(|p| path_to_proto_path(p, &parser.includes))
         .collect::<anyhow::Result<_>>()?;
+
+    relative_paths.extend(input_dir_rel_paths);
 
     let protoc = match &parser.protoc {
         Some(protoc) => Protoc::from_path(protoc),
